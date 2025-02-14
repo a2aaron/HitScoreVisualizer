@@ -10,8 +10,7 @@
 #include "bsml/shared/BSML/Components/Settings/ToggleSetting.hpp"
 #include "custom-types/shared/macros.hpp"
 
-DECLARE_CLASS_CODEGEN_INTERFACES(HSV, CustomList, UnityEngine::MonoBehaviour, classof(HMUI::TableView::IDataSource*),
-
+DECLARE_CLASS_CODEGEN_INTERFACES(HSV, CustomList, UnityEngine::MonoBehaviour, HMUI::TableView::IDataSource*) {
     DECLARE_INSTANCE_FIELD(GlobalNamespace::SimpleTextTableCell*, simpleTextTableCellInstance);
 
     DECLARE_INSTANCE_FIELD(StringW, reuseIdentifier);
@@ -21,17 +20,16 @@ DECLARE_CLASS_CODEGEN_INTERFACES(HSV, CustomList, UnityEngine::MonoBehaviour, cl
 
     DECLARE_CTOR(ctor);
 
-    DECLARE_OVERRIDE_METHOD_MATCH(HMUI::TableCell*, CellForIdx, &HMUI::TableView::IDataSource::CellForIdx, HMUI::TableView* tableView, int idx);
+    DECLARE_OVERRIDE_METHOD_MATCH(HMUI::TableCell*, CellForIdx, &HMUI::TableView::IDataSource::CellForIdx, HMUI::TableView * tableView, int idx);
     DECLARE_OVERRIDE_METHOD_MATCH(float, CellSize, &HMUI::TableView::IDataSource::CellSize);
     DECLARE_OVERRIDE_METHOD_MATCH(int, NumberOfCells, &HMUI::TableView::IDataSource::NumberOfCells);
 
    public:
     std::vector<std::string> data;
     std::map<int, std::string> failures;
-)
+};
 
-DECLARE_CLASS_CODEGEN(HSV, SettingsViewController, HMUI::ViewController,
-
+DECLARE_CLASS_CODEGEN(HSV, SettingsViewController, HMUI::ViewController) {
     DECLARE_DEFAULT_CTOR();
 
     DECLARE_INSTANCE_FIELD(BSML::ToggleSetting*, enabledToggle);
@@ -43,9 +41,11 @@ DECLARE_CLASS_CODEGEN(HSV, SettingsViewController, HMUI::ViewController,
     DECLARE_INSTANCE_METHOD(void, RefreshConfigList);
     DECLARE_INSTANCE_METHOD(void, RefreshUI);
 
-    DECLARE_OVERRIDE_METHOD_MATCH(void, DidActivate, &HMUI::ViewController::DidActivate, bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling);
+    DECLARE_OVERRIDE_METHOD_MATCH(
+        void, DidActivate, &HMUI::ViewController::DidActivate, bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling
+    );
 
    private:
     static std::vector<std::string> fullConfigPaths;
     static int selectedIdx;
-)
+};

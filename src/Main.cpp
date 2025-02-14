@@ -1,5 +1,6 @@
 #include "Main.hpp"
 
+#include "Config.hpp"
 #include "GlobalNamespace/BeatmapObjectExecutionRating.hpp"
 #include "GlobalNamespace/FlyingScoreEffect.hpp"
 #include "GlobalNamespace/FlyingScoreSpawner.hpp"
@@ -9,55 +10,53 @@
 #include "TMPro/TextMeshPro.hpp"
 #include "UnityEngine/AnimationCurve.hpp"
 #include "UnityEngine/SpriteRenderer.hpp"
-#include "beatsaber-hook/shared/config/config-utils.hpp"
+#include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "bsml/shared/BSML.hpp"
 #include "custom-types/shared/register.hpp"
 #include "json/DefaultConfig.hpp"
 
 static modloader::ModInfo modInfo = {MOD_ID, VERSION, 0};
 
-std::string GlobalConfigPath() {
-    static std::string path = Configuration::getConfigFilePath(modInfo);
-    return path;
-}
-
 std::string ConfigsPath() {
     static std::string path = getDataDir(modInfo);
     return path;
 }
 
-bool LoadCurrentConfig() {
-    if (!fileexists(globalConfig.SelectedConfig)) {
-        logger.warn("Could not find selected config!");
-        writefile(ConfigsPath() + defaultConfigName, defaultConfigText);
-        globalConfig.SelectedConfig = ConfigsPath() + defaultConfigName;
-        WriteToFile(GlobalConfigPath(), globalConfig);
-    }
-    HSV::Config config;
-    bool retry = false;
-    do {
-        try {
-            ReadFromFile(globalConfig.SelectedConfig, config);
-            globalConfig.CurrentConfig = config;
-            return true;
-        } catch (std::exception const& err) {
-            logger.error("Could not load config file {}: {}", globalConfig.SelectedConfig, err.what());
-            if (config.IsDefault) {
-                writefile(globalConfig.SelectedConfig, defaultConfigText);
-                retry = !retry;
-            } else
-                return false;
-        }
-    } while (retry);
-    return false;
+static void SetDefaultConfig() {
+    getGlobalConfig().SelectedConfig.SetValue("");
+    getGlobalConfig().CurrentConfig = defaultConfig;
 }
 
-// global config
-HSV::GlobalConfig globalConfig{};
+void LoadCurrentConfig() {
+    std::string selected = getGlobalConfig().SelectedConfig.GetValue();
+    if (!selected.empty() && !fileexists(selected)) {
+        logger.warn("Could not find selected config! Using the default");
+        SetDefaultConfig();
+        return;
+    }
+    try {
+        ReadFromFile(selected, getGlobalConfig().CurrentConfig);
+    } catch (std::exception const& err) {
+        logger.error("Could not load config file {}: {}", selected, err.what());
+        SetDefaultConfig();
+    }
+}
+
 // used for fixed position
 GlobalNamespace::FlyingScoreEffect* currentEffect = nullptr;
 // used for updating ratings
 std::unordered_map<GlobalNamespace::CutScoreBuffer*, GlobalNamespace::FlyingScoreEffect*> swingRatingMap = {};
+
+static bool SkipJudge(GlobalNamespace::NoteCutInfo const& cutInfo) {
+    using ScoringType = GlobalNamespace::NoteData::ScoringType;
+
+    auto cutType = cutInfo.noteData->scoringType;
+    if (cutType == ScoringType::ChainHead || cutType == ScoringType::ChainHeadArcTail)
+        return !getGlobalConfig().CurrentConfig.HasChainHead;
+    if (cutType == ScoringType::ChainLink || cutType == ScoringType::ChainLinkArcHead)
+        return !getGlobalConfig().CurrentConfig.HasChainLink;
+    return false;
+}
 
 MAKE_HOOK_MATCH(
     FlyingScoreEffect_InitAndPresent,
@@ -69,21 +68,24 @@ MAKE_HOOK_MATCH(
     UnityEngine::Vector3 targetPos,
     UnityEngine::Color color
 ) {
-    if (globalConfig.GetActive()) {
-        if (globalConfig.CurrentConfig->FixedPos) {
-            targetPos = globalConfig.CurrentConfig->FixedPos.value();
+    bool enabled = getGlobalConfig().ModEnabled.GetValue();
+
+    if (enabled) {
+        auto& config = getGlobalConfig().CurrentConfig;
+        if (config.FixedPos) {
+            targetPos = config.FixedPos.value();
             self->transform->position = targetPos;
-            if (!globalConfig.HideUntilDone) {
+            if (!getGlobalConfig().HideUntilDone.GetValue()) {
                 if (currentEffect)
                     currentEffect->gameObject->active = false;
                 currentEffect = self;
             }
-        } else if (globalConfig.CurrentConfig->PosOffset)
-            targetPos = UnityEngine::Vector3::op_Addition(targetPos, *globalConfig.CurrentConfig->PosOffset);
+        } else if (config.PosOffset)
+            targetPos = UnityEngine::Vector3::op_Addition(targetPos, *config.PosOffset);
     }
     FlyingScoreEffect_InitAndPresent(self, cutScoreBuffer, duration, targetPos, color);
 
-    if (globalConfig.GetActive()) {
+    if (enabled) {
         if (cutScoreBuffer == nullptr) {
             logger.error("CutScoreBuffer is null!");
             return;
@@ -93,11 +95,7 @@ MAKE_HOOK_MATCH(
             logger.error("CutScoreBuffer is not GlobalNamespace::CutScoreBuffer!");
             return;
         }
-        auto noteCutInfo = cast->noteCutInfo;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderHead && !globalConfig.CurrentConfig->HasChainHead)
-            return;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderElement &&
-            !globalConfig.CurrentConfig->HasChainLink)
+        if (SkipJudge(cast->noteCutInfo))
             return;
 
         if (!cast->isFinished)
@@ -108,7 +106,7 @@ MAKE_HOOK_MATCH(
         self->_text->enableWordWrapping = false;
         self->_text->overflowMode = TMPro::TextOverflowModes::Overflow;
 
-        Judge(cast, self, noteCutInfo);
+        Judge(cast, self, cast->noteCutInfo);
     }
 }
 
@@ -122,20 +120,16 @@ MAKE_HOOK_MATCH(
 ) {
     CutScoreBuffer_HandleSaberSwingRatingCounterDidChange(self, swingRatingCounter, rating);
 
-    if (globalConfig.GetActive()) {
-        auto noteCutInfo = self->noteCutInfo;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderHead && !globalConfig.CurrentConfig->HasChainHead)
-            return;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderElement &&
-            !globalConfig.CurrentConfig->HasChainLink)
+    if (getGlobalConfig().ModEnabled.GetValue()) {
+        if (SkipJudge(self->noteCutInfo))
             return;
 
         auto itr = swingRatingMap.find(self);
         if (itr == swingRatingMap.end())
             return;
-        auto& flyingScoreEffect = itr->second;
+        auto flyingScoreEffect = itr->second;
 
-        Judge(self, flyingScoreEffect, noteCutInfo);
+        Judge(self, flyingScoreEffect, self->noteCutInfo);
     }
 }
 
@@ -148,12 +142,8 @@ MAKE_HOOK_MATCH(
 ) {
     CutScoreBuffer_HandleSaberSwingRatingCounterDidFinish(self, swingRatingCounter);
 
-    if (globalConfig.GetActive()) {
-        auto noteCutInfo = self->noteCutInfo;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderHead && !globalConfig.CurrentConfig->HasChainHead)
-            return;
-        if (noteCutInfo.noteData->scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderElement &&
-            !globalConfig.CurrentConfig->HasChainLink)
+    if (getGlobalConfig().ModEnabled.GetValue()) {
+        if (SkipJudge(self->noteCutInfo))
             return;
 
         auto itr = swingRatingMap.find(self);
@@ -162,9 +152,9 @@ MAKE_HOOK_MATCH(
         auto flyingScoreEffect = itr->second;
         swingRatingMap.erase(itr);
 
-        Judge(self, flyingScoreEffect, noteCutInfo);
+        Judge(self, flyingScoreEffect, self->noteCutInfo);
 
-        if (globalConfig.CurrentConfig->FixedPos && globalConfig.HideUntilDone) {
+        if (getGlobalConfig().CurrentConfig.FixedPos && getGlobalConfig().HideUntilDone.GetValue()) {
             if (currentEffect)
                 currentEffect->gameObject->active = false;
             currentEffect = flyingScoreEffect;
@@ -191,7 +181,7 @@ MAKE_HOOK_MATCH(
 ) {
     FlyingScoreEffect_ManualUpdate(self, t);
 
-    if (globalConfig.GetActive()) {
+    if (getGlobalConfig().ModEnabled.GetValue()) {
         self->_color.a = self->_fadeAnimationCurve->Evaluate(t);
         self->_text->color = self->_color;
     }
@@ -202,25 +192,12 @@ extern "C" void setup(CModInfo* info) {
 
     Paper::Logger::RegisterFileContextId(MOD_ID);
 
+    getGlobalConfig().Init(modInfo);
+
     if (!direxists(ConfigsPath()))
         mkpath(ConfigsPath());
 
-    try {
-        if (!fileexists(GlobalConfigPath()))
-            WriteToFile(GlobalConfigPath(), globalConfig);
-        else
-            ReadFromFile(GlobalConfigPath(), globalConfig);
-    } catch (std::exception const& err) {
-        logger.error("Error loading global config: {}", err.what());
-    }
-    // load current config, or select default
-    if (!LoadCurrentConfig()) {
-        logger.error("Failed to load selected config! Loading default instead");
-        writefile(ConfigsPath() + defaultConfigName, defaultConfigText);
-        globalConfig.SelectedConfig = ConfigsPath() + defaultConfigName;
-        WriteToFile(GlobalConfigPath(), globalConfig);
-        LoadCurrentConfig();
-    }
+    LoadCurrentConfig();
 
     logger.info("Completed setup!");
 }

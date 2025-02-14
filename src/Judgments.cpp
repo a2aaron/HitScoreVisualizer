@@ -1,8 +1,8 @@
-#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <sstream>
 
+#include "Config.hpp"
 #include "GlobalNamespace/CutScoreBuffer.hpp"
 #include "GlobalNamespace/IReadonlyCutScoreBuffer.hpp"
 #include "GlobalNamespace/NoteData.hpp"
@@ -96,9 +96,9 @@ std::string GetBestFloatSegmentText(std::vector<FloatSegment>& segments, float c
 }
 
 std::string TimeDependenceString(float timeDependence) {
-    int multiplier = std::pow(10, globalConfig.CurrentConfig->TimeDependenceDecimalOffset);
+    int multiplier = std::pow(10, getGlobalConfig().CurrentConfig.TimeDependenceDecimalOffset);
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(globalConfig.CurrentConfig->TimeDependenceDecimalPrecision) << (timeDependence * multiplier);
+    ss << std::fixed << std::setprecision(getGlobalConfig().CurrentConfig.TimeDependenceDecimalPrecision) << (timeDependence * multiplier);
     return ss.str();
 }
 
@@ -112,10 +112,10 @@ GetJudgementText(Judgement& judgement, int score, int before, int after, int acc
     text.set_score(std::to_string(score));
     text.set_percent(std::to_string(round(100 * (float) score / maxScore)));
     text.set_timeDependency(TimeDependenceString(timeDependence));
-    text.set_beforeCutSegment(GetBestSegmentText(globalConfig.CurrentConfig->BeforeCutAngleSegments, before));
-    text.set_accuracySegment(GetBestSegmentText(globalConfig.CurrentConfig->AccuracySegments, accuracy));
-    text.set_afterCutSegment(GetBestSegmentText(globalConfig.CurrentConfig->AfterCutAngleSegments, after));
-    text.set_timeDependencySegment(GetBestFloatSegmentText(globalConfig.CurrentConfig->TimeDependenceSegments, timeDependence));
+    text.set_beforeCutSegment(GetBestSegmentText(getGlobalConfig().CurrentConfig.BeforeCutAngleSegments, before));
+    text.set_accuracySegment(GetBestSegmentText(getGlobalConfig().CurrentConfig.AccuracySegments, accuracy));
+    text.set_afterCutSegment(GetBestSegmentText(getGlobalConfig().CurrentConfig.AfterCutAngleSegments, after));
+    text.set_timeDependencySegment(GetBestFloatSegmentText(getGlobalConfig().CurrentConfig.TimeDependenceSegments, timeDependence));
     text.set_direction(GetDirectionText(wrongDirection));
 
     return text.Join();
@@ -155,24 +155,27 @@ void UpdateScoreEffect(
     GlobalNamespace::NoteData::ScoringType scoringType,
     Direction wrongDirection
 ) {
+    using ScoringType = GlobalNamespace::NoteData::ScoringType;
+
     std::string text;
     UnityEngine::Color color;
 
     int maxScore = GlobalNamespace::ScoreModel::GetNoteScoreDefinition(scoringType)->maxCutScore;
 
-    if (scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderElement) {
-        auto&& judgement = globalConfig.CurrentConfig->ChainLinkDisplay.value_or(GetBestJudgement(globalConfig.CurrentConfig->Judgements, total));
+    if (scoringType == ScoringType::ChainLink || scoringType == ScoringType::ChainLinkArcHead) {
+        auto&& judgement =
+            getGlobalConfig().CurrentConfig.ChainLinkDisplay.value_or(GetBestJudgement(getGlobalConfig().CurrentConfig.Judgements, total));
 
         text = GetJudgementText(judgement, total, before, after, accuracy, timeDependence, maxScore, wrongDirection);
         color = judgement.Color;
-    } else if (scoringType == GlobalNamespace::NoteData::ScoringType::BurstSliderHead) {
-        auto& judgementVector = globalConfig.CurrentConfig->ChainHeadJudgements;
+    } else if (scoringType == ScoringType::ChainHead || scoringType == ScoringType::ChainHeadArcTail) {
+        auto& judgementVector = getGlobalConfig().CurrentConfig.ChainHeadJudgements;
         auto& judgement = GetBestJudgement(judgementVector, total);
 
         text = GetJudgementText(judgement, total, before, after, accuracy, timeDependence, maxScore, wrongDirection);
         color = GetJudgementColor(judgement, judgementVector, total);
     } else {
-        auto& judgementVector = globalConfig.CurrentConfig->Judgements;
+        auto& judgementVector = getGlobalConfig().CurrentConfig.Judgements;
         auto& judgement = GetBestJudgement(judgementVector, total);
 
         text = GetJudgementText(judgement, total, before, after, accuracy, timeDependence, maxScore, wrongDirection);
@@ -185,18 +188,20 @@ void UpdateScoreEffect(
 }
 
 void Judge(
-    GlobalNamespace::CutScoreBuffer* cutScoreBuffer, GlobalNamespace::FlyingScoreEffect* flyingScoreEffect, GlobalNamespace::NoteCutInfo& noteCutInfo
+    GlobalNamespace::CutScoreBuffer* cutScoreBuffer,
+    GlobalNamespace::FlyingScoreEffect* flyingScoreEffect,
+    GlobalNamespace::NoteCutInfo const& noteCutInfo
 ) {
     if (!cutScoreBuffer) {
         logger.info("CutScoreBuffer is null");
         return;
     }
-    if (!flyingScoreEffect) {
+    if (!flyingScoreEffect || !flyingScoreEffect->_text) {
         logger.info("FlyingScoreEffect is null");
         return;
     }
 
-    if (!cutScoreBuffer->get_isFinished() && globalConfig.HideUntilDone) {
+    if (!cutScoreBuffer->isFinished && getGlobalConfig().HideUntilDone.GetValue()) {
         flyingScoreEffect->_text->text = "";
         return;
     }

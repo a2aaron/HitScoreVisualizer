@@ -1,10 +1,10 @@
 #include "Settings.hpp"
 
+#include "Config.hpp"
 #include "HMUI/Touchable.hpp"
 #include "Main.hpp"
 #include "UnityEngine/Resources.hpp"
 #include "bsml/shared/BSML-Lite.hpp"
-#include "json/DefaultConfig.hpp"
 
 DEFINE_TYPE(HSV, CustomList);
 DEFINE_TYPE(HSV, SettingsViewController);
@@ -34,11 +34,12 @@ HMUI::TableCell* CustomList::CellForIdx(HMUI::TableView* tableView, int idx) {
     }
 
     tableCell->text = data[idx];
-    tableCell->GetComponent<HMUI::HoverHint*>()->text = "";
-    tableCell->interactable = true;
     if (failures.contains(idx)) {
         tableCell->GetComponent<HMUI::HoverHint*>()->text = failures[idx];
         tableCell->interactable = false;
+    } else {
+        tableCell->GetComponent<HMUI::HoverHint*>()->text = "";
+        tableCell->interactable = true;
     }
     tableCell->gameObject->active = true;
     return tableCell;
@@ -57,47 +58,35 @@ std::vector<std::string> SettingsViewController::fullConfigPaths = {};
 
 void SettingsViewController::ConfigSelected(int idx) {
     selectedIdx = idx;
-    globalConfig.SelectedConfig = fullConfigPaths[idx];
-    WriteToFile(GlobalConfigPath(), globalConfig);
+    getGlobalConfig().SelectedConfig.SetValue(fullConfigPaths[idx]);
     LoadCurrentConfig();
     selectedConfig->text = "Current Config: " + configList->data[idx];
 }
 
 void SettingsViewController::RefreshConfigList() {
-    auto& data = configList->data;
     auto& failureMap = configList->failures;
-    data.clear();
+    auto& data = configList->data;
     failureMap.clear();
-    fullConfigPaths.clear();
+    data = {"Default"};
+    fullConfigPaths = {""};
 
     Config config;
     for (auto& entry : std::filesystem::recursive_directory_iterator(ConfigsPath())) {
+        std::string displayPath = entry.path().stem().string();
         std::string fullPath = entry.path().string();
-        bool retry = false;
-        std::string failed = "";
         // test loading the config
-        do {
-            try {
-                ReadFromFile(fullPath, config);
-            } catch (std::exception const& err) {
-                logger.error("Could not load config file {}: {}", fullPath, err.what());
-                if (config.IsDefault) {
-                    writefile(fullPath, defaultConfigText);
-                    retry = !retry;
-                } else
-                    failed = std::string("Error loading config: ") + err.what();
-            }
-        } while (retry);
-        if (!failed.empty()) {
-            std::string redPath = "<color=red>" + entry.path().stem().string();
-            data.emplace_back(redPath);
+        try {
+            ReadFromFile(fullPath, config);
+        } catch (std::exception const& err) {
+            logger.error("Could not load config file {}: {}", fullPath, err.what());
+            data.emplace_back(fmt::format("<color=red>{}", displayPath));
             fullConfigPaths.emplace_back(fullPath);
-            failureMap.insert({data.size() - 1, failed});
+            failureMap.insert({data.size() - 1, fmt::format("Error loading config: {}", err.what())});
             continue;
         }
-        data.emplace_back(entry.path().stem().string());
+        data.emplace_back(displayPath);
         fullConfigPaths.emplace_back(fullPath);
-        if (globalConfig.SelectedConfig == fullPath)
+        if (getGlobalConfig().SelectedConfig.GetValue() == fullPath)
             selectedIdx = data.size() - 1;
     }
     configList->tableView->ReloadData();
@@ -110,8 +99,8 @@ void SettingsViewController::RefreshConfigList() {
 void SettingsViewController::RefreshUI() {
     RefreshConfigList();
     selectedConfig->text = "Current Config: " + configList->data[selectedIdx];
-    enabledToggle->toggle->isOn = globalConfig.ModEnabled;
-    hideToggle->toggle->isOn = globalConfig.HideUntilDone;
+    enabledToggle->toggle->isOn = getGlobalConfig().ModEnabled.GetValue();
+    hideToggle->toggle->isOn = getGlobalConfig().HideUntilDone.GetValue();
 }
 
 void SettingsViewController::DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling) {
@@ -125,16 +114,15 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
         textLayout->childControlHeight = true;
         textLayout->spacing = 1.5;
 
-        enabledToggle = BSML::Lite::CreateToggle(textLayout, "Mod Enabled", globalConfig.ModEnabled, [](bool enabled) {
-            globalConfig.ModEnabled = enabled;
-            WriteToFile(GlobalConfigPath(), globalConfig);
+        enabledToggle = BSML::Lite::CreateToggle(textLayout, "Mod Enabled", getGlobalConfig().ModEnabled.GetValue(), [](bool enabled) {
+            getGlobalConfig().ModEnabled.SetValue(enabled);
         });
         BSML::Lite::AddHoverHint(enabledToggle, "Toggles whether the mod is active or not");
 
-        hideToggle = BSML::Lite::CreateToggle(textLayout, "Hide Until Calculation Finishes", globalConfig.HideUntilDone, [](bool enabled) {
-            globalConfig.HideUntilDone = enabled;
-            WriteToFile(GlobalConfigPath(), globalConfig);
-        });
+        hideToggle =
+            BSML::Lite::CreateToggle(textLayout, "Hide Until Calculation Finishes", getGlobalConfig().HideUntilDone.GetValue(), [](bool enabled) {
+                getGlobalConfig().HideUntilDone.SetValue(enabled);
+            });
         BSML::Lite::AddHoverHint(enabledToggle, "With this enabled, the hit scores will not be displayed until the score has been finalized");
 
         selectedConfig = BSML::Lite::CreateText(textLayout, "");

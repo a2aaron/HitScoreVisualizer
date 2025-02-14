@@ -7,16 +7,12 @@
 #include <vector>
 
 // Create a setNAME method that reads from the name##Tokens field and sets all tokens listed.
-#define __SET_TOKEN(name) \
+#define SET_TOKEN(name) \
 void set_##name(std::string_view name) { \
     invalidate_text(); \
-    for (int idx : name##Tokens) { \
+    for (int idx : name##Tokens) \
         tokens[idx] = name; \
-    } \
 } \
-auto get_##name##Tokens_size() { \
-    return name##Tokens.size(); \
-}
 
 class TokenizedText {
    public:
@@ -29,15 +25,14 @@ class TokenizedText {
         std::stringstream nonPercentStr;
         int i = 0;
         bool isPercent = false;
-        for (auto itr = str.begin(); itr != str.end(); ++itr) {
-            auto current = *itr;
+        for (char const current : str) {
             if (isPercent) {
                 std::string buffer;
-                if (current == 'n') {
+                if (current == 'n')
                     tokens.emplace_back("\n");
-                } else if (current == '%') {
+                else if (current == '%')
                     tokens.emplace_back("%");
-                } else {
+                else {
                     switch (current) {
                         case 'b':
                             beforeCutTokens.push_back(i);
@@ -100,13 +95,11 @@ class TokenizedText {
                 nonPercentStr.str(std::string());
                 isPercent = true;
                 i++;
-            } else {
+            } else
                 nonPercentStr.put(current);
-            }
         }
-        if (nonPercentStr.str().size() != 0) {
+        if (nonPercentStr.str().size() != 0)
             tokens.emplace_back(nonPercentStr.str());
-        }
     }
 
     std::string Raw() { return original; }
@@ -125,17 +118,17 @@ class TokenizedText {
 
     bool is_text_valid() { return textValid; }
 
-    __SET_TOKEN(beforeCut)
-    __SET_TOKEN(accuracy)
-    __SET_TOKEN(afterCut)
-    __SET_TOKEN(timeDependency)
-    __SET_TOKEN(percent)
-    __SET_TOKEN(beforeCutSegment)
-    __SET_TOKEN(accuracySegment)
-    __SET_TOKEN(afterCutSegment)
-    __SET_TOKEN(timeDependencySegment)
-    __SET_TOKEN(score)
-    __SET_TOKEN(direction)
+    SET_TOKEN(beforeCut)
+    SET_TOKEN(accuracy)
+    SET_TOKEN(afterCut)
+    SET_TOKEN(timeDependency)
+    SET_TOKEN(percent)
+    SET_TOKEN(beforeCutSegment)
+    SET_TOKEN(accuracySegment)
+    SET_TOKEN(afterCutSegment)
+    SET_TOKEN(timeDependencySegment)
+    SET_TOKEN(score)
+    SET_TOKEN(direction)
 
     std::string original;
     std::vector<std::string> tokens;
@@ -158,3 +151,5 @@ class TokenizedText {
     std::vector<int> scoreTokens;
     std::vector<int> directionTokens;
 };
+
+#undef SET_TOKEN
