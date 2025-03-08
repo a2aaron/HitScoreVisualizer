@@ -2,7 +2,7 @@
 
 #include "Config.hpp"
 
-static HSV::Config const defaultConfig = {
+inline HSV::Config const defaultConfig = {
     .Judgements =
         {
             {115, "<size=150%><u>%s</u></size>", {1, 1, 1, 1}},

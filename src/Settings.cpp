@@ -69,6 +69,8 @@ void SettingsViewController::RefreshConfigList() {
     failureMap.clear();
     data = {"Default"};
     fullConfigPaths = {""};
+    if (getGlobalConfig().SelectedConfig.GetValue() == "")
+        selectedIdx = 0;
 
     Config config;
     for (auto& entry : std::filesystem::recursive_directory_iterator(ConfigsPath())) {
