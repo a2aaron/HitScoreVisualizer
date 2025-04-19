@@ -1,0 +1,115 @@
+{
+    "judgments": [
+        {
+            "text": "<size=150%><u>%s</u></size>",
+            "color": [1, 1, 1, 1],
+            "threshold": 115,
+            "fade": false
+        },
+        {
+            "text": "%B<size=120%>%C%s</u></size>%A",
+            "color": [0, 0.5, 1, 1],
+            "threshold": 110,
+            "fade": false
+        },
+        {
+            "text": "%B%C%s</u>%A",
+            "color": [0, 1, 0, 1],
+            "threshold": 105,
+            "fade": false
+        },
+        {
+            "text": "%B%C%s</u>%A",
+            "color": [1, 1, 0, 1],
+            "threshold": 100,
+            "fade": false
+        },
+        {
+            "text": "%B<size=80%>%s</size>%A",
+            "color": [1, 0, 0, 1],
+            "threshold": 50,
+            "fade": true
+        },
+        {
+            "text": "%B<size=80%>%s</size>%A",
+            "color": [1, 0, 0, 1],
+            "threshold": 0,
+            "fade": false
+        }
+    ],
+    "chainHeadJudgments": [
+        {
+            "text": "<size=150%><u>%s</u></size>",
+            "color": [1, 1, 1, 1],
+            "threshold": 85,
+            "fade": false
+        },
+        {
+            "text": "%B<size=120%>%C%s</u></size>%A",
+            "color": [0, 0.5, 1, 1],
+            "threshold": 80,
+            "fade": false
+        },
+        {
+            "text": "%B%C%s</u>%A",
+            "color": [0, 1, 0, 1],
+            "threshold": 75,
+            "fade": false
+        },
+        {
+            "text": "%B%C%s</u>%A",
+            "color": [1, 1, 0, 1],
+            "threshold": 70,
+            "fade": false
+        },
+        {
+            "text": "%B<size=80%>%s</size>%A",
+            "color": [1, 0, 0, 1],
+            "threshold": 35,
+            "fade": true
+        },
+        {
+            "text": "%B<size=80%>%s</size>%A",
+            "color": [1, 0, 0, 1],
+            "threshold": 0,
+            "fade": false
+        }
+    ],
+    "chainLinkDisplay": {
+        "text": "%s",
+        "color": [1, 1, 1, 1]
+    },
+    "beforeCutAngleJudgments": [
+        {
+            "threshold": 70,
+            "text": " + "
+        },
+        {
+            "threshold": 0,
+            "text": "<color=#ff4f4f> - </color>"
+        }
+    ],
+    "accuracyJudgments": [
+        {
+            "threshold": 15,
+            "text": "<u>"
+        },
+        {
+            "threshold": 0,
+            "text": ""
+        }
+    ],
+    "afterCutAngleJudgments": [
+        {
+            "threshold": 30,
+            "text": " + "
+        },
+        {
+            "threshold": 0,
+            "text": "<color=#ff4f4f> - </color>"
+        }
+    ],
+    "timeDependencyJudgments": [],
+    "timeDependencyDecimalPrecision": 1,
+    "timeDependencyDecimalOffset": 2
+}

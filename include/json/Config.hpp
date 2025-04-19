@@ -10,6 +10,10 @@ namespace HSV {
        private:
         NAMED_VALUE(std::string, UnprocessedText, "text");
         NAMED_VECTOR(float, UnprocessedColor, "color");
+        DESERIALIZE_FUNCTION(ColorLength) {
+            if (UnprocessedColor.size() != 4)
+                throw JSONException("invalid judgment color length");
+        };
 
        public:
         DESERIALIZE_FUNCTION(Parsing) {
