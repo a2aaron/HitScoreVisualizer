@@ -6,25 +6,33 @@
 #include "config-utils/shared/config-utils.hpp"
 
 namespace HSV {
+    inline std::vector<std::string> const BadCutTypes = {"All", "WrongDirection", "WrongColor", "Bomb"};
+
+    DECLARE_JSON_STRUCT(ColorArray) {
+        NAMED_VECTOR(float, RawColor, SELF_OBJECT_NAME);
+        DESERIALIZE_FUNCTION(ParseColor) {
+            if (RawColor.size() != 4)
+                throw JSONException("invalid color array length");
+            Color = {RawColor[0], RawColor[1], RawColor[2], RawColor[3]};
+        };
+        UnityEngine::Color Color;
+
+        ColorArray(UnityEngine::Color color) : RawColor{color.r, color.g, color.b, color.a} {}
+        ColorArray() = default;
+    };
+
     DECLARE_JSON_STRUCT(Judgement) {
        private:
         NAMED_VALUE(std::string, UnprocessedText, "text");
-        NAMED_VECTOR(float, UnprocessedColor, "color");
-        DESERIALIZE_FUNCTION(ColorLength) {
-            if (UnprocessedColor.size() != 4)
-                throw JSONException("invalid judgment color length");
+        DESERIALIZE_FUNCTION(ParseText) {
+            Text = TokenizedText(UnprocessedText);
         };
 
        public:
-        DESERIALIZE_FUNCTION(Parsing) {
-            Text = TokenizedText(UnprocessedText);
-            Color = UnityEngine::Color(UnprocessedColor[0], UnprocessedColor[1], UnprocessedColor[2], UnprocessedColor[3]);
-        };
-
+        NAMED_VALUE(ColorArray, Color, "color");
         NAMED_VALUE_DEFAULT(int, Threshold, 0, "threshold");
         NAMED_VALUE_OPTIONAL(bool, Fade, "fade");
         TokenizedText Text;
-        ConfigUtils::Color Color;
 
         Judgement(int threshold, std::string text, UnityEngine::Color color, bool fade = false) :
             Threshold(threshold),
@@ -50,20 +58,30 @@ namespace HSV {
         FloatSegment() = default;
     };
 
+    DECLARE_JSON_STRUCT(BadCutDisplay) {
+        NAMED_VALUE(std::string, Text, "text");
+        NAMED_VALUE(std::string, Type, "type");
+        NAMED_VALUE(ColorArray, Color, "color");
+
+        DESERIALIZE_FUNCTION(ValidateType) {
+            if (std::find(BadCutTypes.begin(), BadCutTypes.end(), Type) == BadCutTypes.end())
+                throw JSONException("invalid display type");
+        }
+    };
+
+    DECLARE_JSON_STRUCT(MissDisplay) {
+        NAMED_VALUE(std::string, Text, "text");
+        NAMED_VALUE(ColorArray, Color, "color");
+    };
+
     DECLARE_JSON_STRUCT(Config) {
         NAMED_VECTOR(Judgement, Judgements, "judgments");
-        DESERIALIZE_FUNCTION(NeedsJudgements) {
+        DESERIALIZE_FUNCTION(ValidateJudgements) {
             if (Judgements.size() < 1)
                 throw JSONException("no judgements found in config");
         };
         NAMED_VECTOR_DEFAULT(Judgement, ChainHeadJudgements, {}, "chainHeadJudgments");
-        DESERIALIZE_FUNCTION(NeedsChainHeads) {
-            HasChainHead = ChainHeadJudgements.size() > 0;
-        };
         NAMED_VALUE_OPTIONAL(Judgement, ChainLinkDisplay, "chainLinkDisplay");
-        DESERIALIZE_FUNCTION(NeedsChainLinks) {
-            HasChainLink = ChainLinkDisplay.has_value();
-        };
         NAMED_VECTOR_DEFAULT(Segment, BeforeCutAngleSegments, {}, "beforeCutAngleJudgments");
         NAMED_VECTOR_DEFAULT(Segment, AccuracySegments, {}, "accuracyJudgments");
         NAMED_VECTOR_DEFAULT(Segment, AfterCutAngleSegments, {}, "afterCutAngleJudgments");
@@ -74,6 +92,16 @@ namespace HSV {
         NAMED_VALUE_OPTIONAL(bool, UseFixedPos, "useFixedPos");
         NAMED_VALUE_OPTIONAL(ConfigUtils::Vector3, UnprocessedFixedPos, "fixedPosition");
         NAMED_VALUE_OPTIONAL(ConfigUtils::Vector3, UnprocessedPosOffset, "targetPositionOffset");
+        NAMED_VALUE_DEFAULT(int, TimeDependenceDecimalPrecision, 1, "timeDependencyDecimalPrecision");
+        NAMED_VALUE_DEFAULT(int, TimeDependenceDecimalOffset, 2, "timeDependencyDecimalOffset");
+        NAMED_VECTOR_DEFAULT(BadCutDisplay, BadCutDisplays, {}, "badCutDisplays");
+        NAMED_VALUE_DEFAULT(bool, RandomizeBadCutDisplays, true, "randomizeBadCutDisplays");
+        NAMED_VECTOR_DEFAULT(MissDisplay, MissDisplays, {}, "missDisplays");
+        NAMED_VALUE_DEFAULT(bool, RandomizeMissDisplays, true, "randomizeMissDisplays");
+
+        std::optional<ConfigUtils::Vector3> FixedPos;
+        std::optional<ConfigUtils::Vector3> PosOffset;
+
         DESERIALIZE_FUNCTION(ConvertPositions) {
             if (UseFixedPos.has_value() && UseFixedPos.value())
                 FixedPos = {FixedPosX.value_or(0), FixedPosY.value_or(0), FixedPosZ.value_or(0)};
@@ -82,12 +110,12 @@ namespace HSV {
             if (UnprocessedPosOffset)
                 PosOffset = {UnprocessedPosOffset->x, UnprocessedPosOffset->y, UnprocessedPosOffset->z};
         };
-        NAMED_VALUE_DEFAULT(int, TimeDependenceDecimalPrecision, 1, "timeDependencyDecimalPrecision");
-        NAMED_VALUE_DEFAULT(int, TimeDependenceDecimalOffset, 2, "timeDependencyDecimalOffset");
 
-        std::optional<ConfigUtils::Vector3> FixedPos;
-        std::optional<ConfigUtils::Vector3> PosOffset;
-        bool HasChainHead;
-        bool HasChainLink;
+        bool HasChainHead() {
+            return ChainHeadJudgements.size() > 0;
+        };
+        bool HasChainLink() {
+            return ChainLinkDisplay.has_value();
+        };
     };
 }

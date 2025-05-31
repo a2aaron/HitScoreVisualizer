@@ -13,6 +13,7 @@
 #include "UnityEngine/Mathf.hpp"
 
 using namespace HSV;
+using ScoringType = GlobalNamespace::NoteData::ScoringType;
 
 enum class Direction { Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft, None };
 
@@ -123,7 +124,7 @@ GetJudgementText(Judgement& judgement, int score, int before, int after, int acc
 
 UnityEngine::Color GetJudgementColor(Judgement& judgement, std::vector<Judgement>& judgements, int score) {
     if (!judgement.Fade || !judgement.Fade.value())
-        return judgement.Color;
+        return judgement.Color.Color;
     // get the lowest judgement with a higher threshold
     Judgement* best = nullptr;
     for (auto& judgement : judgements) {
@@ -131,12 +132,12 @@ UnityEngine::Color GetJudgementColor(Judgement& judgement, std::vector<Judgement
             best = &judgement;
     }
     if (!best)
-        return judgement.Color;
+        return judgement.Color.Color;
     int lowerThreshold = judgement.Threshold;
     int higherThreshold = best->Threshold;
     float lerpDistance = ((float) score - lowerThreshold) / (higherThreshold - lowerThreshold);
-    auto lowerColor = judgement.Color;
-    auto higherColor = best->Color;
+    auto lowerColor = judgement.Color.Color;
+    auto higherColor = best->Color.Color;
     return UnityEngine::Color(
         lowerColor.r + (higherColor.r - lowerColor.r) * lerpDistance,
         lowerColor.g + (higherColor.g - lowerColor.g) * lerpDistance,
@@ -152,11 +153,9 @@ void UpdateScoreEffect(
     int after,
     int accuracy,
     float timeDependence,
-    GlobalNamespace::NoteData::ScoringType scoringType,
+    ScoringType scoringType,
     Direction wrongDirection
 ) {
-    using ScoringType = GlobalNamespace::NoteData::ScoringType;
-
     std::string text;
     UnityEngine::Color color;
 
@@ -167,7 +166,7 @@ void UpdateScoreEffect(
             getGlobalConfig().CurrentConfig.ChainLinkDisplay.value_or(GetBestJudgement(getGlobalConfig().CurrentConfig.Judgements, total));
 
         text = GetJudgementText(judgement, total, before, after, accuracy, timeDependence, maxScore, wrongDirection);
-        color = judgement.Color;
+        color = judgement.Color.Color;
     } else if (scoringType == ScoringType::ChainHead || scoringType == ScoringType::ChainHeadArcTail) {
         auto& judgementVector = getGlobalConfig().CurrentConfig.ChainHeadJudgements;
         auto& judgement = GetBestJudgement(judgementVector, total);
@@ -214,7 +213,7 @@ void Judge(
     float timeDependence = std::abs(noteCutInfo.cutNormal.z);
     Direction wrongDirection = GetWrongDirection(noteCutInfo);
 
-    GlobalNamespace::NoteData::ScoringType scoringType = noteCutInfo.noteData->scoringType;
+    ScoringType scoringType = noteCutInfo.noteData->scoringType;
 
     UpdateScoreEffect(flyingScoreEffect, total, before, after, accuracy, timeDependence, scoringType, wrongDirection);
 }

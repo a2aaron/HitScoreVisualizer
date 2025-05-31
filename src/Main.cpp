@@ -52,9 +52,9 @@ static bool SkipJudge(GlobalNamespace::NoteCutInfo const& cutInfo) {
 
     auto cutType = cutInfo.noteData->scoringType;
     if (cutType == ScoringType::ChainHead || cutType == ScoringType::ChainHeadArcTail)
-        return !getGlobalConfig().CurrentConfig.HasChainHead;
+        return !getGlobalConfig().CurrentConfig.HasChainHead();
     if (cutType == ScoringType::ChainLink || cutType == ScoringType::ChainLinkArcHead)
-        return !getGlobalConfig().CurrentConfig.HasChainLink;
+        return !getGlobalConfig().CurrentConfig.HasChainLink();
     return false;
 }
 
