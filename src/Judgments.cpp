@@ -1,6 +1,4 @@
-#include <iomanip>
-#include <limits>
-#include <sstream>
+#include <random>
 
 #include "Config.hpp"
 #include "GlobalNamespace/CutScoreBuffer.hpp"
@@ -11,6 +9,7 @@
 #include "System/Collections/Generic/Dictionary_2.hpp"
 #include "TMPro/TextMeshPro.hpp"
 #include "UnityEngine/Mathf.hpp"
+#include "metacore/shared/operators.hpp"
 
 using namespace HSV;
 using ScoringType = GlobalNamespace::NoteData::ScoringType;
@@ -19,14 +18,14 @@ enum class Direction { Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLe
 
 static float const angle = sqrt(2) / 2;
 
-std::map<Direction, UnityEngine::Vector3> const normalsMap = {
+static std::map<Direction, UnityEngine::Vector3> const normalsMap = {
     {Direction::DownRight, {angle, -angle, 0}},
     {Direction::Down, {0, -1, 0}},
     {Direction::DownLeft, {-angle, -angle, 0}},
     {Direction::Left, {-1, 0, 0}},
 };
 
-Direction GetWrongDirection(GlobalNamespace::NoteCutInfo const& cutInfo) {
+static Direction GetWrongDirection(GlobalNamespace::NoteCutInfo const& cutInfo) {
     float best = std::numeric_limits<float>::min();
     Direction ret = Direction::None;
     for (auto& [direction, normal] : normalsMap) {
@@ -46,7 +45,7 @@ Direction GetWrongDirection(GlobalNamespace::NoteCutInfo const& cutInfo) {
     return (Direction) (asInt - 4);
 }
 
-std::string_view GetDirectionText(Direction wrongDirection) {
+static std::string_view GetDirectionText(Direction wrongDirection) {
     switch (wrongDirection) {
         case Direction::Up:
             return "↑";
@@ -69,7 +68,7 @@ std::string_view GetDirectionText(Direction wrongDirection) {
     }
 }
 
-Judgement& GetBestJudgement(std::vector<Judgement>& judgements, int comparison) {
+static Judgement& GetBestJudgement(std::vector<Judgement>& judgements, int comparison) {
     Judgement* best = nullptr;
     for (auto& judgement : judgements) {
         if (comparison >= judgement.Threshold && (!best || judgement.Threshold > best->Threshold))
@@ -78,7 +77,7 @@ Judgement& GetBestJudgement(std::vector<Judgement>& judgements, int comparison) 
     return best ? *best : judgements.back();
 }
 
-std::string GetBestSegmentText(std::vector<Segment>& segments, int comparison) {
+static std::string GetBestSegmentText(std::vector<Segment>& segments, int comparison) {
     Segment* best = nullptr;
     for (auto& segment : segments) {
         if (comparison >= segment.Threshold && (!best || segment.Threshold > best->Threshold))
@@ -87,7 +86,7 @@ std::string GetBestSegmentText(std::vector<Segment>& segments, int comparison) {
     return best ? best->Text : "";
 }
 
-std::string GetBestFloatSegmentText(std::vector<FloatSegment>& segments, float comparison) {
+static std::string GetBestFloatSegmentText(std::vector<FloatSegment>& segments, float comparison) {
     FloatSegment* best = nullptr;
     for (auto& segment : segments) {
         if (comparison >= segment.Threshold && (!best || segment.Threshold > best->Threshold))
@@ -96,14 +95,14 @@ std::string GetBestFloatSegmentText(std::vector<FloatSegment>& segments, float c
     return best ? best->Text : "";
 }
 
-std::string TimeDependenceString(float timeDependence) {
+static std::string TimeDependenceString(float timeDependence) {
     int multiplier = std::pow(10, getGlobalConfig().CurrentConfig.TimeDependenceDecimalOffset);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(getGlobalConfig().CurrentConfig.TimeDependenceDecimalPrecision) << (timeDependence * multiplier);
     return ss.str();
 }
 
-std::string
+static std::string
 GetJudgementText(Judgement& judgement, int score, int before, int after, int accuracy, float timeDependence, int maxScore, Direction wrongDirection) {
     auto& text = judgement.Text;
 
@@ -122,7 +121,7 @@ GetJudgementText(Judgement& judgement, int score, int before, int after, int acc
     return text.Join();
 }
 
-UnityEngine::Color GetJudgementColor(Judgement& judgement, std::vector<Judgement>& judgements, int score) {
+static UnityEngine::Color GetJudgementColor(Judgement& judgement, std::vector<Judgement>& judgements, int score) {
     if (!judgement.Fade || !judgement.Fade.value())
         return judgement.Color.Color;
     // get the lowest judgement with a higher threshold
@@ -146,7 +145,7 @@ UnityEngine::Color GetJudgementColor(Judgement& judgement, std::vector<Judgement
     );
 }
 
-void UpdateScoreEffect(
+static void UpdateScoreEffect(
     GlobalNamespace::FlyingScoreEffect* flyingScoreEffect,
     int total,
     int before,
@@ -216,4 +215,53 @@ void Judge(
     ScoringType scoringType = noteCutInfo.noteData->scoringType;
 
     UpdateScoreEffect(flyingScoreEffect, total, before, after, accuracy, timeDependence, scoringType, wrongDirection);
+}
+
+static int wrongDirectionsCounter = 0;
+static int wrongColorsCounter = 0;
+static int bombsCounter = 0;
+static int missesCounter = 0;
+
+static std::random_device device;
+static std::default_random_engine rng(device());
+
+static int Random(int min, int max) {
+    return std::uniform_int_distribution<int>(min, max)(rng);
+}
+
+template <class T>
+static T const& GetDisplay(std::vector<T> const& displays, int& counter, bool randomize) {
+    int idx = randomize ? std::uniform_int_distribution<int>(0, displays.size())(rng) : (counter++ % displays.size());
+    return displays[idx];
+}
+
+static std::pair<int&, std::vector<BadCutDisplay>&> GetBadCutList(GlobalNamespace::NoteCutInfo const& noteCutInfo) {
+    if (noteCutInfo.noteData->colorType == GlobalNamespace::ColorType::None)
+        return {bombsCounter, getGlobalConfig().CurrentConfig.Bombs};
+    if (!noteCutInfo.saberTypeOK)
+        return {wrongColorsCounter, getGlobalConfig().CurrentConfig.WrongColors};
+    return {wrongDirectionsCounter, getGlobalConfig().CurrentConfig.WrongDirections};
+}
+
+bool SpawnBadCut(GlobalNamespace::FlyingTextSpawner* spawner, GlobalNamespace::NoteCutInfo const& noteCutInfo) {
+    auto [counter, vector] = GetBadCutList(noteCutInfo);
+    if (vector.empty() || !spawner)
+        return false;
+    bool randomize = getGlobalConfig().CurrentConfig.RandomizeBadCutDisplays;
+    auto const& display = GetDisplay(vector, counter, randomize);
+    spawner->_color = display.Color.Color;
+    spawner->SpawnText(noteCutInfo.cutPoint, noteCutInfo.worldRotation, noteCutInfo.inverseWorldRotation, display.Text);
+    return true;
+}
+
+bool SpawnMiss(GlobalNamespace::FlyingTextSpawner* spawner, GlobalNamespace::NoteController* note, float z) {
+    auto& config = getGlobalConfig().CurrentConfig;
+    if (config.MissDisplays.empty() || !spawner)
+        return false;
+    auto const& display = GetDisplay(config.MissDisplays, missesCounter, config.RandomizeMissDisplays);
+    spawner->_color = display.Color.Color;
+    auto position = note->inverseWorldRotation * note->_noteTransform->position;
+    position.z = z;
+    spawner->SpawnText(position, note->worldRotation, note->inverseWorldRotation, display.Text);
+    return true;
 }

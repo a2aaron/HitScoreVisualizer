@@ -1,10 +1,14 @@
 #include "Main.hpp"
 
 #include "Config.hpp"
+#include "GlobalNamespace/AudioTimeSyncController.hpp"
+#include "GlobalNamespace/BadNoteCutEffectSpawner.hpp"
 #include "GlobalNamespace/BeatmapObjectExecutionRating.hpp"
 #include "GlobalNamespace/FlyingScoreEffect.hpp"
 #include "GlobalNamespace/FlyingScoreSpawner.hpp"
+#include "GlobalNamespace/FlyingSpriteSpawner.hpp"
 #include "GlobalNamespace/IReadonlyCutScoreBuffer.hpp"
+#include "GlobalNamespace/MissedNoteEffectSpawner.hpp"
 #include "GlobalNamespace/NoteData.hpp"
 #include "Settings.hpp"
 #include "TMPro/TextMeshPro.hpp"
@@ -12,10 +16,15 @@
 #include "UnityEngine/SpriteRenderer.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "bsml/shared/BSML.hpp"
+#include "bsml/shared/helpers/getters.hpp"
 #include "custom-types/shared/register.hpp"
 #include "json/DefaultConfig.hpp"
+#include "metacore/shared/events.hpp"
+#include "metacore/shared/unity.hpp"
 
 static modloader::ModInfo modInfo = {MOD_ID, VERSION, 0};
+
+static GlobalNamespace::FlyingTextSpawner* textSpawner;
 
 std::string ConfigsPath() {
     static std::string path = getDataDir(modInfo);
@@ -187,6 +196,49 @@ MAKE_HOOK_MATCH(
     }
 }
 
+ON_EVENT(MetaCore::Events::GameplaySceneStarted) {
+    // use zenject to populate the text effect pool
+    textSpawner = BSML::Helpers::GetDiContainer()->InstantiateComponentOnNewGameObject<GlobalNamespace::FlyingTextSpawner*>("HSVFlyingTextSpawner");
+    if (auto spriteSpawner = UnityEngine::Object::FindObjectOfType<GlobalNamespace::FlyingSpriteSpawner*>(true)) {
+        textSpawner->_duration = spriteSpawner->_duration;
+        textSpawner->_xSpread = spriteSpawner->_xSpread;
+        textSpawner->_targetYPos = spriteSpawner->_targetYPos;
+        textSpawner->_targetZPos = spriteSpawner->_targetZPos;
+        textSpawner->_shake = spriteSpawner->_shake;
+    } else
+        logger.error("Failed to find flying sprite spawner!");
+    textSpawner->_fontSize = 4.5;
+    MetaCore::Engine::SetOnDestroy(textSpawner, []() { textSpawner = nullptr; });
+}
+
+MAKE_HOOK_MATCH(
+    BadNoteCutEffectSpawner_HandleNoteWasCut,
+    &GlobalNamespace::BadNoteCutEffectSpawner::HandleNoteWasCut,
+    void,
+    GlobalNamespace::BadNoteCutEffectSpawner* self,
+    GlobalNamespace::NoteController* noteController,
+    ByRef<GlobalNamespace::NoteCutInfo> noteCutInfo
+) {
+    if (noteController->noteData->time + 0.5 < self->_audioTimeSyncController->songTime)
+        return;
+    if (!SpawnBadCut(textSpawner, noteCutInfo.heldRef))
+        BadNoteCutEffectSpawner_HandleNoteWasCut(self, noteController, noteCutInfo);
+}
+
+MAKE_HOOK_MATCH(
+    MissedNoteEffectSpawner_HandleNoteWasMissed,
+    &GlobalNamespace::MissedNoteEffectSpawner::HandleNoteWasMissed,
+    void,
+    GlobalNamespace::MissedNoteEffectSpawner* self,
+    GlobalNamespace::NoteController* noteController
+) {
+    if (noteController->hidden || noteController->noteData->time + 0.5 < self->_audioTimeSyncController->songTime ||
+        noteController->noteData->colorType == GlobalNamespace::ColorType::None)
+        return;
+    if (!SpawnMiss(textSpawner, noteController, self->_spawnPosZ))
+        MissedNoteEffectSpawner_HandleNoteWasMissed(self, noteController);
+}
+
 extern "C" void setup(CModInfo* info) {
     *info = modInfo.to_c();
 
@@ -216,5 +268,7 @@ extern "C" void late_load() {
     INSTALL_HOOK(logger, CutScoreBuffer_HandleSaberSwingRatingCounterDidFinish);
     INSTALL_HOOK(logger, FlyingScoreSpawner_HandleFlyingObjectEffectDidFinish);
     INSTALL_HOOK(logger, FlyingScoreEffect_ManualUpdate);
+    INSTALL_HOOK(logger, BadNoteCutEffectSpawner_HandleNoteWasCut);
+    INSTALL_HOOK(logger, MissedNoteEffectSpawner_HandleNoteWasMissed);
     logger.info("Installed all hooks!");
 }

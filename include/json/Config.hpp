@@ -60,7 +60,7 @@ namespace HSV {
 
     DECLARE_JSON_STRUCT(BadCutDisplay) {
         NAMED_VALUE(std::string, Text, "text");
-        NAMED_VALUE(std::string, Type, "type");
+        NAMED_VALUE_DEFAULT(std::string, Type, "type", BadCutTypes[0]);
         NAMED_VALUE(ColorArray, Color, "color");
 
         DESERIALIZE_FUNCTION(ValidateType) {
@@ -102,6 +102,10 @@ namespace HSV {
         std::optional<ConfigUtils::Vector3> FixedPos;
         std::optional<ConfigUtils::Vector3> PosOffset;
 
+        std::vector<BadCutDisplay> WrongDirections;
+        std::vector<BadCutDisplay> WrongColors;
+        std::vector<BadCutDisplay> Bombs;
+
         DESERIALIZE_FUNCTION(ConvertPositions) {
             if (UseFixedPos.has_value() && UseFixedPos.value())
                 FixedPos = {FixedPosX.value_or(0), FixedPosY.value_or(0), FixedPosZ.value_or(0)};
@@ -109,6 +113,20 @@ namespace HSV {
                 FixedPos = {UnprocessedFixedPos->x, UnprocessedFixedPos->y, UnprocessedFixedPos->z};
             if (UnprocessedPosOffset)
                 PosOffset = {UnprocessedPosOffset->x, UnprocessedPosOffset->y, UnprocessedPosOffset->z};
+        };
+
+        DESERIALIZE_FUNCTION(CategorizeBadCuts) {
+            WrongDirections.clear();
+            WrongColors.clear();
+            Bombs.clear();
+            for (auto& display : BadCutDisplays) {
+                if (display.Type == BadCutTypes[0] || display.Type == BadCutTypes[1])
+                    WrongDirections.emplace_back(display);
+                if (display.Type == BadCutTypes[0] || display.Type == BadCutTypes[2])
+                    WrongColors.emplace_back(display);
+                if (display.Type == BadCutTypes[0] || display.Type == BadCutTypes[3])
+                    Bombs.emplace_back(display);
+            }
         };
 
         bool HasChainHead() {

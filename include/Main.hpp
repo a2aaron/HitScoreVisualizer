@@ -2,6 +2,8 @@
 
 #include "GlobalNamespace/CutScoreBuffer.hpp"
 #include "GlobalNamespace/FlyingScoreEffect.hpp"
+#include "GlobalNamespace/FlyingTextSpawner.hpp"
+#include "GlobalNamespace/NoteController.hpp"
 #include "GlobalNamespace/NoteCutInfo.hpp"
 #include "beatsaber-hook/shared/utils/logging.hpp"
 
@@ -15,3 +17,5 @@ void Judge(
     GlobalNamespace::FlyingScoreEffect* flyingScoreEffect,
     GlobalNamespace::NoteCutInfo const& noteCutInfo
 );
+bool SpawnBadCut(GlobalNamespace::FlyingTextSpawner* spawner, GlobalNamespace::NoteCutInfo const& noteCutInfo);
+bool SpawnMiss(GlobalNamespace::FlyingTextSpawner* spawner, GlobalNamespace::NoteController* note, float z);
