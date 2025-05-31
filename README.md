@@ -33,12 +33,17 @@ Following is a list of all the properties in the config used by the current vers
 | `chainLinkDisplay` | A Judgment that will always display when hitting the links of the chain block.<br/>Some fields and tokens don't do anything here because the links are always the same score. | Uses Judgment objects. More info below. |
 | `timeDependencyDecimalPrecision` | The number of decimal places used when time dependence is shown.<br/>**Must be between 0 and 99, inclusive** | <ul><li>`0`</li><li>`5`</li><li>`80`</li></ul> |
 | `timeDependencyDecimalOffset` | A power of 10 that the displayed time dependence will be multiplied by.<br/>Time dependence is from 0 - 1, so this will allow it to be shown between 0 and 10, 0 and 100, etc.<br/> **Must be between 0 and 38, inclusive** | <ul><li>`0`</li><li>`5`</li><li>`38`</li></ul> |
+| `badCutDisplays` | A list of BadCutDisplays that can change the regular bad cut text. | Uses BadCutDisplay objects. More info below. |
+| `randomizeBadCutDisplays` | If true, a random item from the `badCutDisplays` list will be shown for every bad cut. Otherwise, it will go through them in order. | `true` |
+| `missDisplays` | A list of MissDisplays that can change the regular miss text. | Uses MissDisplay objects. More info below. |
+| `randomizeMissDisplays` | If true, a random item from the `missDisplays` list will be shown for every miss. Otherwise, it will go through them in order. | `true` |
 
 ### Important info
 
-- The `text` property of Judgment, JudgmentSegment, and TimeDependenceJudgmentSegment objects all have support for [TextMeshPro formatting](http://digitalnativestudios.com/textmeshpro/docs/rich-text/).
+- The `text` property of Judgment, JudgmentSegment, TimeDependenceJudgmentSegment, BadCutDisplay, and MissDisplay objects all have support for [TextMeshPro formatting](http://digitalnativestudios.com/textmeshpro/docs/rich-text/).
 - The order of Judgments and JudgmentSegments in their lists does not matter, unless none of the Judgments fit the threshold for a hit score, in which case the last one will be used.
 - `chainHeadJudgments` and `chainLinkDisplay` are not required in configs for backwards compatibility, and configs without them will simply not affect the displayed scores for those types of notes.
+- Bad cut and miss related fields are also not required in configs.
 
 ### Format tokens
 
@@ -77,9 +82,24 @@ Following is a list of all the properties in the config used by the current vers
 | threshold | The threshold that defines if this segment will be used for a given time dependence. The segment will be used if it is the one with the highest threshold that's either equal or smaller than the time dependence.<br/>It can also be omitted for the segment for the lowest time dependences. | 0.5 |
 | text | The text to display. The above format tokens will not be replaced in this text. | "+++" |
 
+### BadCutDisplay objects
+
+| Property name(s) | Explanation / Info | Example or possible values |
+| --- | --- | --- |
+| text | The text to display. No format tokens will be replaced. | `"Oops"` |
+| type | The type of bad cuts this text can be shown for. If omitted, it can be shown for any bad cut. | <ul><li>`"WrongDirection"`</li><li>`"WrongColor"`</li><li>`"Bomb"`</li><li>`"All"`</li></ul> |
+| `color` | An array that specifies the color. Consists of 4 floating numbers ranging between (inclusive) 0 and 1, corresponding to Red, Green, Blue, and Alpha. | `[0, 0.5, 1, 0.75]` |
+
+### MissDisplay objects
+
+| Property name(s) | Explanation / Info | Example or possible values |
+| --- | --- | --- |
+| text | The text to display. No format tokens will be replaced. | `"Oops 2"` |
+| `color` | An array that specifies the color. Consists of 4 floating numbers ranging between (inclusive) 0 and 1, corresponding to Red, Green, Blue, and Alpha. | `[0, 0.5, 1, 0.75]` |
+
 ## Useful links
 
-[HSV Config Creator by MoreOwO](https://github.com/MoreOwO/HSV-Config-Creator/releases/latest): A program that helps you create configs for HSV.
+[HSV Config Creator by MoreOwO](https://github.com/MoreOwO/HSV-Config-Creator/releases/latest): A program that helps you create configs for HSV. (May not always be up-to-date with the latest features.)
 
 ## Credits
 
