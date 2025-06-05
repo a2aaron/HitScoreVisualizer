@@ -17,7 +17,7 @@ namespace HSV {
         };
         UnityEngine::Color Color;
 
-        ColorArray(UnityEngine::Color color) : RawColor{color.r, color.g, color.b, color.a} {}
+        ColorArray(UnityEngine::Color color) : RawColor{color.r, color.g, color.b, color.a}, Color(color) {}
         ColorArray() = default;
     };
 
