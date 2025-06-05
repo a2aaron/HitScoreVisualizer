@@ -4,6 +4,7 @@
 #include "GlobalNamespace/AudioTimeSyncController.hpp"
 #include "GlobalNamespace/BadNoteCutEffectSpawner.hpp"
 #include "GlobalNamespace/BeatmapObjectExecutionRating.hpp"
+#include "GlobalNamespace/EffectPoolsManualInstaller.hpp"
 #include "GlobalNamespace/FlyingScoreEffect.hpp"
 #include "GlobalNamespace/FlyingScoreSpawner.hpp"
 #include "GlobalNamespace/FlyingSpriteSpawner.hpp"
@@ -14,9 +15,9 @@
 #include "TMPro/TextMeshPro.hpp"
 #include "UnityEngine/AnimationCurve.hpp"
 #include "UnityEngine/SpriteRenderer.hpp"
+#include "Zenject/DiContainer.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "bsml/shared/BSML.hpp"
-#include "bsml/shared/helpers/getters.hpp"
 #include "custom-types/shared/register.hpp"
 #include "json/DefaultConfig.hpp"
 #include "metacore/shared/events.hpp"
@@ -196,19 +197,26 @@ MAKE_HOOK_MATCH(
     }
 }
 
-ON_EVENT(MetaCore::Events::GameplaySceneStarted) {
+MAKE_HOOK_MATCH(
+    EffectPoolsManualInstaller_ManualInstallBindings,
+    &GlobalNamespace::EffectPoolsManualInstaller::ManualInstallBindings,
+    void,
+    GlobalNamespace::EffectPoolsManualInstaller* self,
+    Zenject::DiContainer* container,
+    bool shortBeatEffect
+) {
+    EffectPoolsManualInstaller_ManualInstallBindings(self, container, shortBeatEffect);
+
     // use zenject to populate the text effect pool
-    textSpawner = BSML::Helpers::GetDiContainer()->InstantiateComponentOnNewGameObject<GlobalNamespace::FlyingTextSpawner*>("HSVFlyingTextSpawner");
-    if (auto spriteSpawner = UnityEngine::Object::FindObjectOfType<GlobalNamespace::FlyingSpriteSpawner*>(true)) {
-        textSpawner->_duration = spriteSpawner->_duration;
-        textSpawner->_xSpread = spriteSpawner->_xSpread;
-        textSpawner->_targetYPos = spriteSpawner->_targetYPos;
-        textSpawner->_targetZPos = spriteSpawner->_targetZPos;
-        textSpawner->_shake = spriteSpawner->_shake;
-    } else
-        logger.error("Failed to find flying sprite spawner!");
+    textSpawner = container->InstantiateComponentOnNewGameObject<GlobalNamespace::FlyingTextSpawner*>("HSVFlyingTextSpawner");
+    textSpawner->_duration = 0.7;
+    textSpawner->_xSpread = 2;
+    textSpawner->_targetYPos = 1.3;
+    textSpawner->_targetZPos = 14;
+    textSpawner->_shake = false;
     textSpawner->_fontSize = 4.5;
     MetaCore::Engine::SetOnDestroy(textSpawner, []() { textSpawner = nullptr; });
+    logger.debug("created text spawner");
 }
 
 MAKE_HOOK_MATCH(
@@ -268,6 +276,7 @@ extern "C" void late_load() {
     INSTALL_HOOK(logger, CutScoreBuffer_HandleSaberSwingRatingCounterDidFinish);
     INSTALL_HOOK(logger, FlyingScoreSpawner_HandleFlyingObjectEffectDidFinish);
     INSTALL_HOOK(logger, FlyingScoreEffect_ManualUpdate);
+    INSTALL_HOOK(logger, EffectPoolsManualInstaller_ManualInstallBindings);
     INSTALL_HOOK(logger, BadNoteCutEffectSpawner_HandleNoteWasCut);
     INSTALL_HOOK(logger, MissedNoteEffectSpawner_HandleNoteWasMissed);
     logger.info("Installed all hooks!");
