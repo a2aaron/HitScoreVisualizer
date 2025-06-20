@@ -72,29 +72,29 @@ Following is a list of all the properties in the config used by the current vers
 
 | Property name(s) | Explanation / Info | Example or possible values |
 | --- | --- | --- |
-| threshold | The threshold that defines if this segment will be used for a given score. The segment will be used if it is the one with the highest threshold that's either equal or smaller than the given part of the hit score.<br/>It can also be omitted for the segment for the lowest scores. | `30` |
-| text | The text to display. The above format tokens will not be replaced in this text. | `"+++"` |
+| `threshold` | The threshold that defines if this segment will be used for a given score. The segment will be used if it is the one with the highest threshold that's either equal or smaller than the given part of the hit score.<br/>It can also be omitted for the segment for the lowest scores. | `30` |
+| `text` | The text to display. The above format tokens will not be replaced in this text. | `"+++"` |
 
 ### TimeDependenceJudgmentSegment objects
 
 | Property name(s) | Explanation / Info | Example or possible values |
 | --- | --- | --- |
-| threshold | The threshold that defines if this segment will be used for a given time dependence. The segment will be used if it is the one with the highest threshold that's either equal or smaller than the time dependence.<br/>It can also be omitted for the segment for the lowest time dependences. | 0.5 |
-| text | The text to display. The above format tokens will not be replaced in this text. | "+++" |
+| `threshold` | The threshold that defines if this segment will be used for a given time dependence. The segment will be used if it is the one with the highest threshold that's either equal or smaller than the time dependence.<br/>It can also be omitted for the segment for the lowest time dependences. | `0.5` |
+| `text` | The text to display. The above format tokens will not be replaced in this text. | `"+++"` |
 
 ### BadCutDisplay objects
 
 | Property name(s) | Explanation / Info | Example or possible values |
 | --- | --- | --- |
-| text | The text to display. No format tokens will be replaced. | `"Oops"` |
-| type | The type of bad cuts this text can be shown for. If omitted, it can be shown for any bad cut. | <ul><li>`"WrongDirection"`</li><li>`"WrongColor"`</li><li>`"Bomb"`</li><li>`"All"`</li></ul> |
+| `text` | The text to display. No format tokens will be replaced. | `"Oops"` |
+| `type` | The type of bad cuts this text can be shown for. If omitted, it can be shown for any bad cut. | <ul><li>`"WrongDirection"`</li><li>`"WrongColor"`</li><li>`"Bomb"`</li><li>`"All"`</li></ul> |
 | `color` | An array that specifies the color. Consists of 4 floating numbers ranging between (inclusive) 0 and 1, corresponding to Red, Green, Blue, and Alpha. | `[0, 0.5, 1, 0.75]` |
 
 ### MissDisplay objects
 
 | Property name(s) | Explanation / Info | Example or possible values |
 | --- | --- | --- |
-| text | The text to display. No format tokens will be replaced. | `"Oops 2"` |
+| `text` | The text to display. No format tokens will be replaced. | `"Oops 2"` |
 | `color` | An array that specifies the color. Consists of 4 floating numbers ranging between (inclusive) 0 and 1, corresponding to Red, Green, Blue, and Alpha. | `[0, 0.5, 1, 0.75]` |
 
 ## Useful links
