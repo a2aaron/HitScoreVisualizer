@@ -21,7 +21,7 @@ inline HSV::Config const defaultConfig = {
             {35, "%B<size=80%>%s</size>%A", {1, 0, 0, 1}, true},
             {0, "%B<size=80%>%s</size>%A", {1, 0, 0, 1}},
         },
-    .ChainLinkDisplay = {{0, "%s", {1, 1, 1, 1}}},
+    .ChainLinkDisplay = {{0, "<alpha=#80><size=80%>%s", {1, 1, 1, 1}}},
     .BeforeCutAngleSegments =
         {
             {70, " + "},

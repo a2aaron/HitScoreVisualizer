@@ -76,7 +76,7 @@
         }
     ],
     "chainLinkDisplay": {
-        "text": "%s",
+        "text": "<alpha=#80><size=80%>%s",
         "color": [1, 1, 1, 1]
     },
     "beforeCutAngleJudgments": [
