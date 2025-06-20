@@ -4,12 +4,12 @@ A fairly simple mod that allows you to heavily customize the appearance of hit s
 
 ## Usage
 
-When you first run the game after installing this mod, it will create a new folder at `/sdcard/ModData/com.beatgames.beatsaber/Mods/HitScoreVisualizer`. In that folder, you can drop all your HSV config files. It doesn't even matter if you create new folders in that folder, HSV will still be able to find them all.
+After installing the mod, if your config files have the extension `.hsv` or `.hsvconfig`, you can upload them directly to MBF. Otherwise, they can be manually placed in the folder `/sdcard/ModData/com.beatgames.beatsaber/Mods/HitScoreVisualizer`, or even subfolders if desired, regardless of file name or extension. Note that the folder may not exist yet if you have not launched the game again after installing the mod.
 
 > [!TIP]
 > While you can have config files with the same name when using folder structures, **I still strongly advise you to use unique config filenames** because, despite HSV being able to handle them just fine, you might end up with several files in the list that appear identical.
 
-After placing your configs in the folder, you can open the settings ingame and select one.
+After uploading your configs, you can open the settings ingame and select one.
 
 ## Creating a Custom Config
 

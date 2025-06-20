@@ -12,5 +12,14 @@
   "modFiles": [],
   "libraryFiles": [],
   "fileCopies": [],
-  "copyExtensions": []
+  "copyExtensions": [
+    {
+      "extension": "hsv",
+      "destination": "/sdcard/ModData/com.beatgames.beatsaber/Mods/HitScoreVisualizer/"
+    },
+    {
+      "extension": "hsvconfig",
+      "destination": "/sdcard/ModData/com.beatgames.beatsaber/Mods/HitScoreVisualizer/"
+    }
+  ]
 }
