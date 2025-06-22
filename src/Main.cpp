@@ -229,7 +229,7 @@ MAKE_HOOK_MATCH(
 ) {
     if (noteController->noteData->time + 0.5 < self->_audioTimeSyncController->songTime)
         return;
-    if (!SpawnBadCut(textSpawner, noteCutInfo.heldRef))
+    if (noteCutInfo->allIsOK || !SpawnBadCut(textSpawner, noteCutInfo.heldRef))
         BadNoteCutEffectSpawner_HandleNoteWasCut(self, noteController, noteCutInfo);
 }
 

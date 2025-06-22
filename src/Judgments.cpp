@@ -226,12 +226,12 @@ static std::random_device device;
 static std::default_random_engine rng(device());
 
 static int Random(int min, int max) {
-    return std::uniform_int_distribution<int>(min, max)(rng);
+    return std::uniform_int_distribution<int>(min, max - 1)(rng);
 }
 
 template <class T>
 static T const& GetDisplay(std::vector<T> const& displays, int& counter, bool randomize) {
-    int idx = randomize ? std::uniform_int_distribution<int>(0, displays.size())(rng) : (counter++ % displays.size());
+    int idx = randomize ? Random(0, displays.size()) : (counter++ % displays.size());
     return displays[idx];
 }
 

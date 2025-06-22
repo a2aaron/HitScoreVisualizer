@@ -60,12 +60,12 @@ namespace HSV {
 
     DECLARE_JSON_STRUCT(BadCutDisplay) {
         NAMED_VALUE(std::string, Text, "text");
-        NAMED_VALUE_DEFAULT(std::string, Type, "type", BadCutTypes[0]);
+        NAMED_VALUE_DEFAULT(std::string, Type, BadCutTypes[0], "type");
         NAMED_VALUE(ColorArray, Color, "color");
 
         DESERIALIZE_FUNCTION(ValidateType) {
             if (std::find(BadCutTypes.begin(), BadCutTypes.end(), Type) == BadCutTypes.end())
-                throw JSONException("invalid display type");
+                throw JSONException(fmt::format(": invalid display type \"{}\"", Type));
         }
     };
 
