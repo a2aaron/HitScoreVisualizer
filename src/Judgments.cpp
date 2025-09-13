@@ -110,7 +110,7 @@ GetJudgementText(Judgement& judgement, int score, int before, int after, int acc
     text.set_accuracy(std::to_string(accuracy));
     text.set_afterCut(std::to_string(after));
     text.set_score(std::to_string(score));
-    text.set_percent(std::to_string(round(100 * (float) score / maxScore)));
+    text.set_percent(std::to_string((int)round(100 * (float) score / maxScore)));
     text.set_timeDependency(TimeDependenceString(timeDependence));
     text.set_beforeCutSegment(GetBestSegmentText(getGlobalConfig().CurrentConfig.BeforeCutAngleSegments, before));
     text.set_accuracySegment(GetBestSegmentText(getGlobalConfig().CurrentConfig.AccuracySegments, accuracy));
